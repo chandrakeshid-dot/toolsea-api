@@ -16,9 +16,9 @@ def download():
     if not url:
         return jsonify({"status": "error", "message": "Bhai, link toh daalo!"})
     
-    cookie_path = 'cookies.txt'
+    # Render server ke liye exact absolute path
+    cookie_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cookies.txt')
     
-    # Universal format options for YouTube and Instagram
     ydl_opts = {
         'format': 'bestvideo+bestaudio/best',
         'quiet': True,
@@ -38,7 +38,6 @@ def download():
             title = info.get('title', 'Downloaded Media')
             thumbnail = info.get('thumbnail', '')
             
-            # Extract direct download stream URL safely
             download_url = info.get('url')
             if not download_url and 'requested_formats' in info:
                 download_url = info['requested_formats'][0].get('url')
