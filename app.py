@@ -1,7 +1,9 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import yt_dlp
 
 app = Flask(__name__)
+CORS(app)  # Yeh line saare CORS blocks ko hata degi!
 
 @app.route('/')
 def home():
@@ -13,7 +15,6 @@ def download():
     if not url:
         return jsonify({"status": "error", "message": "Bhai, link toh daalo!"})
     
-    # yt-dlp options for universal downloading
     ydl_opts = {
         'format': 'best',
         'quiet': True,
@@ -28,10 +29,8 @@ def download():
             title = info.get('title', 'Downloaded Media')
             thumbnail = info.get('thumbnail', '')
             
-            # Direct video/media stream URL
             download_url = info.get('url')
             if not download_url and 'formats' in info:
-                # Fallback to best format URL
                 formats = info['formats']
                 download_url = formats[-1].get('url')
                 
