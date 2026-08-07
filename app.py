@@ -8,7 +8,7 @@ CORS(app)
 
 @app.route('/')
 def home():
-    return jsonify({"status": "success", "message": "ToolSea Python Cloud API with Cookies is live!"})
+    return jsonify({"status": "success", "message": "ToolSea Python Cloud API is live and running!"})
 
 @app.route('/download', methods=['GET'])
 def download():
@@ -16,11 +16,11 @@ def download():
     if not url:
         return jsonify({"status": "error", "message": "Bhai, link toh daalo!"})
     
-    # Cookies ka path (GitHub par file ka naam 'cookies.txt' hona chahiye)
     cookie_path = 'cookies.txt'
     
+    # Universal format options for YouTube and Instagram
     ydl_opts = {
-        'format': 'best',
+        'format': 'bestvideo+bestaudio/best',
         'quiet': True,
         'no_warnings': True,
         'cookiefile': cookie_path if os.path.exists(cookie_path) else None,
@@ -38,10 +38,12 @@ def download():
             title = info.get('title', 'Downloaded Media')
             thumbnail = info.get('thumbnail', '')
             
+            # Extract direct download stream URL safely
             download_url = info.get('url')
-            if not download_url and 'formats' in info:
-                formats = info['formats']
-                download_url = formats[-1].get('url')
+            if not download_url and 'requested_formats' in info:
+                download_url = info['requested_formats'][0].get('url')
+            elif not download_url and 'formats' in info:
+                download_url = info['formats'][-1].get('url')
                 
             return jsonify({
                 "status": "success",
