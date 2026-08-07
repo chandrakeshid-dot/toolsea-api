@@ -1,68 +1,65 @@
-import os
-import static_ffmpeg
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 import yt_dlp
-
-# Auto-install and set FFmpeg path for Python
-static_ffmpeg.add_paths()
 
 app = Flask(__name__)
 CORS(app)
 
-DOWNLOAD_FOLDER = '/tmp/downloads'
-os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
-
 @app.route('/')
 def home():
-    return jsonify({"status": "success", "message": "ToolSea API with Static FFmpeg is Live!"})
+    return jsonify({"status": "success", "message": "ToolSea API Perfect Audio Stream Live!"})
 
 @app.route('/download', methods=['GET'])
 def download():
     url = request.args.get('url')
     if not url:
-        return jsonify({"status": "error", "message": "Link daalo!"})
-
+        return jsonify({"status": "error", "message": "Bhai, link daalo!"})
+    
+    # 'format' option hata diya hai taaki hum saare formats nikal kar khud best wala chunein
+    ydl_opts = {
+        'quiet': True,
+        'no_warnings': True,
+    }
+    
     try:
-        out_template = os.path.join(DOWNLOAD_FOLDER, '%(id)s.%(ext)s')
-
-        ydl_opts = {
-            'format': 'bestvideo+bestaudio/best',
-            'outtmpl': out_template,
-            'merge_output_format': 'mp4',
-            'quiet': True,
-            'no_warnings': True,
-            'overwrites': True,
-        }
-
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            title = info.get('title', 'Instagram Media')
+            info = ydl.extract_info(url, download=False)
+            
+            title = info.get('title', 'Instagram Video')
             thumbnail = info.get('thumbnail', '')
-            video_id = info.get('id')
-
-            filename = f"{video_id}.mp4"
-            file_path = os.path.join(DOWNLOAD_FOLDER, filename)
-
-            if os.path.exists(file_path):
-                download_url = request.host_url + f"get-file/{filename}"
-                return jsonify({
-                    "status": "success",
-                    "data": {
-                        "title": title,
-                        "thumbnail": thumbnail,
-                        "download_url": download_url
-                    }
-                })
+            
+            download_url = None
+            formats = info.get('formats', [])
+            
+            # Master Trick: Sirf 'Progressive MP4' (bina DASH wale) stream dhoondho jisme audio aur video humesha sath hote hain
+            valid_formats = [
+                f for f in formats 
+                if f.get('ext') == 'mp4' 
+                and 'dash' not in f.get('format_id', '').lower()
+            ]
+            
+            if valid_formats:
+                # Unme se sabse high quality (resolution) wali file uthao
+                valid_formats.sort(key=lambda x: x.get('height', 0) or 0)
+                download_url = valid_formats[-1].get('url')
             else:
-                return jsonify({"status": "error", "message": "File merge fail ho gayi!"})
-
+                # Agar koi filter match na kare toh default combined link de do
+                download_url = info.get('url')
+                
+            return jsonify({
+                "status": "success",
+                "data": {
+                    "title": title,
+                    "thumbnail": thumbnail,
+                    "download_url": download_url
+                }
+            })
+            
     except Exception as e:
-        return jsonify({"status": "error", "message": "Error: " + str(e)})
-
-@app.route('/get-file/<filename>')
-def get_file(filename):
-    return send_from_directory(DOWNLOAD_FOLDER, filename, as_attachment=True)
+        return jsonify({
+            "status": "error",
+            "message": "Error: " + str(e)
+        })
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
