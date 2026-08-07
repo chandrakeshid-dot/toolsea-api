@@ -15,14 +15,14 @@ def download():
     if not url:
         return jsonify({"status": "error", "message": "Bhai, link toh daalo!"})
     
-    # YouTube bot wall ko bypass karne ke liye Android client spoofing
+    # YouTube bot wall todne ke liye iOS Client Bypass
     ydl_opts = {
         'format': 'best',
         'quiet': True,
         'no_warnings': True,
         'extractor_args': {
             'youtube': {
-                'player_client': ['android', 'web']
+                'player_client': ['ios', 'web']
             }
         }
     }
