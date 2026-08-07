@@ -13,11 +13,10 @@ def home():
 def download():
     url = request.args.get('url')
     if not url:
-        return jsonify({"status": "error", "message": "Bhai, link toh daalo!"})
+        return jsonify({"status": "error", "message": "Link daalo!"})
     
-    # Strictly ask for combined format (single file with video + audio)
     ydl_opts = {
-        'format': 'b/best',
+        'format': 'best',
         'quiet': True,
         'no_warnings': True,
     }
@@ -26,24 +25,23 @@ def download():
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
             
-            title = info.get('title', 'Instagram Reel')
+            title = info.get('title', 'Instagram Media')
             thumbnail = info.get('thumbnail', '')
             
-            # Root level 'url' contains the direct Progressive MP4 with Audio
-            download_url = info.get('url')
+            download_url = None
             
-            # Backup check if root URL is missing
-            if not download_url and 'formats' in info:
-                for f in info['formats']:
-                    vcodec = f.get('vcodec', 'none')
-                    acodec = f.get('acodec', 'none')
-                    if vcodec != 'none' and acodec != 'none':
-                        download_url = f.get('url')
-                        break
-
+            # Formats filtering: strictly look for combined (video + audio)
+            if 'formats' in info:
+                for fmt in info['formats']:
+                    vcodec = fmt.get('vcodec', 'none')
+                    acodec = fmt.get('acodec', 'none')
+                    
+                    if vcodec and vcodec != 'none' and acodec and acodec != 'none':
+                        download_url = fmt.get('url')
+                        
             if not download_url:
-                return jsonify({"status": "error", "message": "Video stream nahi mila!"})
-
+                download_url = info.get('url')
+                
             return jsonify({
                 "status": "success",
                 "data": {
