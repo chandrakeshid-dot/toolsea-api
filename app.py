@@ -7,7 +7,7 @@ CORS(app)
 
 @app.route('/')
 def home():
-    return jsonify({"status": "success", "message": "ToolSea API is live!"})
+    return jsonify({"status": "success", "message": "ToolSea API is Live!"})
 
 @app.route('/download', methods=['GET'])
 def download():
@@ -15,9 +15,9 @@ def download():
     if not url:
         return jsonify({"status": "error", "message": "Bhai, link toh daalo!"})
     
-    # Force yt-dlp to pick ONLY formats with BOTH video and audio combined
+    # Strictly ask for combined format (single file with video + audio)
     ydl_opts = {
-        'format': 'best[vcodec!=none][acodec!=none]/best',
+        'format': 'b/best',
         'quiet': True,
         'no_warnings': True,
     }
@@ -26,26 +26,24 @@ def download():
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
             
-            title = info.get('title', 'Instagram Video')
+            title = info.get('title', 'Instagram Reel')
             thumbnail = info.get('thumbnail', '')
             
-            download_url = None
+            # Root level 'url' contains the direct Progressive MP4 with Audio
+            download_url = info.get('url')
             
-            # Filter formats to ensure format is not DASH video-only
-            if 'formats' in info:
-                valid_formats = [
-                    f for f in info['formats']
-                    if f.get('vcodec') not in (None, 'none') 
-                    and f.get('acodec') not in (None, 'none')
-                    and 'dash' not in f.get('format_id', '').lower()
-                ]
-                if valid_formats:
-                    download_url = valid_formats[-1].get('url')
-            
-            # Fallback if no specific filter matches
+            # Backup check if root URL is missing
+            if not download_url and 'formats' in info:
+                for f in info['formats']:
+                    vcodec = f.get('vcodec', 'none')
+                    acodec = f.get('acodec', 'none')
+                    if vcodec != 'none' and acodec != 'none':
+                        download_url = f.get('url')
+                        break
+
             if not download_url:
-                download_url = info.get('url')
-                
+                return jsonify({"status": "error", "message": "Video stream nahi mila!"})
+
             return jsonify({
                 "status": "success",
                 "data": {
