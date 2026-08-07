@@ -3,7 +3,7 @@ from flask_cors import CORS
 import yt_dlp
 
 app = Flask(__name__)
-CORS(app)  # Yeh line saare CORS blocks ko hata degi!
+CORS(app)
 
 @app.route('/')
 def home():
@@ -15,11 +15,16 @@ def download():
     if not url:
         return jsonify({"status": "error", "message": "Bhai, link toh daalo!"})
     
+    # YouTube bot wall ko bypass karne ke liye Android client spoofing
     ydl_opts = {
         'format': 'best',
         'quiet': True,
         'no_warnings': True,
-        'extract_flat': False,
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'web']
+            }
+        }
     }
     
     try:
