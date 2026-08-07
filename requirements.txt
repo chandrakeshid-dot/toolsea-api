@@ -1,4 +1,4 @@
 flask
-yt-dlp
-gunicorn
 flask-cors
+yt-dlp
+static-ffmpeg
