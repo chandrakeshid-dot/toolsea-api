@@ -16,14 +16,20 @@ def download():
     if not url:
         return jsonify({"status": "error", "message": "Bhai, link toh daalo!"})
     
-    # Render server ke liye exact absolute path
     cookie_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cookies.txt')
     
+    # Real Browser User-Agent and Cookies configuration
     ydl_opts = {
         'format': 'bestvideo+bestaudio/best',
         'quiet': True,
         'no_warnings': True,
         'cookiefile': cookie_path if os.path.exists(cookie_path) else None,
+        'http_headers': {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-us,en;q=0.5',
+            'Sec-Fetch-Mode': 'navigate',
+        },
         'extractor_args': {
             'youtube': {
                 'player_client': ['android', 'web']
