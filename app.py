@@ -7,7 +7,7 @@ CORS(app)
 
 @app.route('/')
 def home():
-    return jsonify({"status": "success", "message": "ToolSea API is live with Audio Fix!"})
+    return jsonify({"status": "success", "message": "ToolSea API is live!"})
 
 @app.route('/download', methods=['GET'])
 def download():
@@ -15,8 +15,9 @@ def download():
     if not url:
         return jsonify({"status": "error", "message": "Bhai, link toh daalo!"})
     
+    # Force yt-dlp to pick ONLY formats with BOTH video and audio combined
     ydl_opts = {
-        'format': 'best',
+        'format': 'best[vcodec!=none][acodec!=none]/best',
         'quiet': True,
         'no_warnings': True,
     }
@@ -30,27 +31,20 @@ def download():
             
             download_url = None
             
-            # 1. Sabse pehle pre-merged file dhoondhenge jisme Video aur Audio dono hon
+            # Filter formats to ensure format is not DASH video-only
             if 'formats' in info:
-                for f in reversed(info['formats']):
-                    vcodec = f.get('vcodec')
-                    acodec = f.get('acodec')
-                    
-                    # Fix: Handle both None object and 'none' string safely
-                    has_video = vcodec is not None and vcodec != 'none'
-                    has_audio = acodec is not None and acodec != 'none'
-                    
-                    if has_video and has_audio:
-                        download_url = f.get('url')
-                        break
+                valid_formats = [
+                    f for f in info['formats']
+                    if f.get('vcodec') not in (None, 'none') 
+                    and f.get('acodec') not in (None, 'none')
+                    and 'dash' not in f.get('format_id', '').lower()
+                ]
+                if valid_formats:
+                    download_url = valid_formats[-1].get('url')
             
-            # 2. Agar merged file na mile, toh direct default url use karein
+            # Fallback if no specific filter matches
             if not download_url:
                 download_url = info.get('url')
-                
-            # 3. Last fallback (agar kuch na mile toh aakhri format le lo)
-            if not download_url and 'formats' in info:
-                download_url = info['formats'][-1].get('url')
                 
             return jsonify({
                 "status": "success",
